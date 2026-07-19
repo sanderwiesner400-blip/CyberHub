@@ -1,14 +1,1108 @@
-# A fast, small, safe, gradually typed embeddable scripting language derived from Lua
-#
-# https://github.com/luau-lang/luau
-# https://luau.org/
+-- CyberHub - Modern UI Script (Transparent & Thick Strokes)
+-- Created by Assistant
 
-# Code coverage
-coverage.out
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local StarterGui = game:GetService("StarterGui")
 
-# Profiling
-profile.out
-profile.svg
+-- Feature Variables
+local InfiniteJump = false
+local DoubleJump = false
+local HasDoubleJumped = false
+local JumpPower = 50
+local WalkSpeed = 16
+local InfiniteJumpConnection
+local DoubleJumpConnection
 
-# Time trace
-trace.json
+-- New Variables
+local ForwardTPAmount = 10
+local IsInvisible = false
+local IsFlying = false
+local FlyConnection
+local FlySpeed = 50
+
+-- ESP & Waypoint Variables
+local EspEnabled = false
+local EspColor = Color3.fromRGB(255, 0, 0)
+local EspColorR, EspColorG, EspColorB = 255, 0, 0
+local EspObjects = {}
+
+-- Teleport Point Variables
+local TeleportPoints = {}
+local MaxTeleportPoints = 5
+
+-- Night Mode Variables
+local IsNightMode = false
+local OriginalLightingValues = {}
+
+-- Material Change Variables
+local IsPlasticMode = false
+local OriginalMaterials = {}
+
+-- Aimlock Variables
+local IsAimlock = false
+local AimlockTarget = "Head"
+local AimlockKey = Enum.KeyCode.E
+local AimlockConnection
+local AimlockCircle
+
+-- Player List Variables
+local PlayerListFrame
+local PlayerListItems = {}
+
+-- Main GUI
+local CyberHub = Instance.new("ScreenGui")
+CyberHub.Name = "CyberHub"
+CyberHub.Parent = CoreGui
+CyberHub.ResetOnSpawn = false
+
+-- Main Window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 550, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundTransparency = 0.5
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = CyberHub
+
+-- UI Stroke for Main Window
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Name = "MainStroke"
+MainStroke.Thickness = 4
+MainStroke.Transparency = 0.8
+MainStroke.Color = Color3.fromRGB(0, 0, 0)
+MainStroke.LineJoinMode = Enum.LineJoinMode.Round
+MainStroke.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TitleBar.BackgroundTransparency = 0.5
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+-- UI Stroke for Title Bar
+local TitleStroke = Instance.new("UIStroke")
+TitleStroke.Name = "TitleStroke"
+TitleStroke.Thickness = 4
+TitleStroke.Transparency = 0.8
+TitleStroke.Color = Color3.fromRGB(0, 0, 0)
+TitleStroke.LineJoinMode = Enum.LineJoinMode.Round
+TitleStroke.Parent = TitleBar
+
+-- CyberHub Title
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.BackgroundTransparency = 1
+Title.RichText = true
+Title.Text = '<font color="rgb(255,255,255)">Cyber</font><font color="rgb(0,180,255)">Hub</font>'
+Title.TextSize = 24
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextStrokeTransparency = 0.8
+Title.Parent = TitleBar
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 35, 0, 35)
+CloseButton.Position = UDim2.new(1, -40, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CloseButton.BackgroundTransparency = 0.3
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 18
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = TitleBar
+
+local CloseStroke = Instance.new("UIStroke")
+CloseStroke.Name = "CloseStroke"
+CloseStroke.Thickness = 4
+CloseStroke.Transparency = 0.8
+CloseStroke.Color = Color3.fromRGB(0, 0, 0)
+CloseStroke.Parent = CloseButton
+
+CloseButton.MouseEnter:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    CloseButton.BackgroundTransparency = 0.2
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    CloseButton.BackgroundTransparency = 0.3
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    CyberHub:Destroy()
+end)
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
+MinimizeButton.Position = UDim2.new(1, -80, 0, 5)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MinimizeButton.BackgroundTransparency = 0.3
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 22
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.AutoButtonColor = false
+MinimizeButton.Parent = TitleBar
+
+local MinimizeStroke = Instance.new("UIStroke")
+MinimizeStroke.Name = "MinimizeStroke"
+MinimizeStroke.Thickness = 4
+MinimizeStroke.Transparency = 0.8
+MinimizeStroke.Color = Color3.fromRGB(0, 0, 0)
+MinimizeStroke.Parent = MinimizeButton
+
+local IsMinimized = false
+
+-- Left Sidebar for Categories
+local SideBar = Instance.new("Frame")
+SideBar.Name = "SideBar"
+SideBar.Size = UDim2.new(0, 170, 1, -45)
+SideBar.Position = UDim2.new(0, 0, 0, 45)
+SideBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SideBar.BackgroundTransparency = 0.5
+SideBar.BorderSizePixel = 0
+SideBar.Parent = MainFrame
+
+local SideStroke = Instance.new("UIStroke")
+SideStroke.Name = "SideStroke"
+SideStroke.Thickness = 4
+SideStroke.Transparency = 0.8
+SideStroke.Color = Color3.fromRGB(0, 0, 0)
+SideStroke.LineJoinMode = Enum.LineJoinMode.Round
+SideStroke.Parent = SideBar
+
+-- Category Area
+local CategoryList = Instance.new("ScrollingFrame")
+CategoryList.Name = "CategoryList"
+CategoryList.Size = UDim2.new(1, -10, 1, -20)
+CategoryList.Position = UDim2.new(0, 5, 0, 10)
+CategoryList.BackgroundTransparency = 1
+CategoryList.BorderSizePixel = 0
+CategoryList.ScrollBarThickness = 3
+CategoryList.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+CategoryList.ScrollBarImageTransparency = 0.3
+CategoryList.Parent = SideBar
+
+local CategoryLayout = Instance.new("UIListLayout")
+CategoryLayout.Padding = UDim.new(0, 8)
+CategoryLayout.Parent = CategoryList
+
+-- Content Area Right Side
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, -170, 1, -45)
+ContentFrame.Position = UDim2.new(0, 170, 0, 45)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ContentFrame.BackgroundTransparency = 0.5
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Visible = true
+ContentFrame.Parent = MainFrame
+
+local ContentStroke = Instance.new("UIStroke")
+ContentStroke.Name = "ContentStroke"
+ContentStroke.Thickness = 4
+ContentStroke.Transparency = 0.8
+ContentStroke.Color = Color3.fromRGB(0, 0, 0)
+ContentStroke.Parent = ContentFrame
+
+-- Content Title
+local ContentTitle = Instance.new("TextLabel")
+ContentTitle.Name = "ContentTitle"
+ContentTitle.Size = UDim2.new(1, -20, 0, 35)
+ContentTitle.Position = UDim2.new(0, 10, 0, 10)
+ContentTitle.BackgroundTransparency = 1
+ContentTitle.Text = "Select a Category"
+ContentTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ContentTitle.TextSize = 20
+ContentTitle.Font = Enum.Font.GothamBold
+ContentTitle.TextXAlignment = Enum.TextXAlignment.Left
+ContentTitle.Parent = ContentFrame
+
+-- Content ScrollingFrame
+local ContentScroll = Instance.new("ScrollingFrame")
+ContentScroll.Name = "ContentScroll"
+ContentScroll.Size = UDim2.new(1, -20, 1, -60)
+ContentScroll.Position = UDim2.new(0, 10, 0, 55)
+ContentScroll.BackgroundTransparency = 1
+ContentScroll.BorderSizePixel = 0
+ContentScroll.ScrollBarThickness = 3
+ContentScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+ContentScroll.ScrollBarImageTransparency = 0.3
+ContentScroll.Parent = ContentFrame
+
+local ContentLayout = Instance.new("UIListLayout")
+ContentLayout.Padding = UDim.new(0, 10)
+ContentLayout.Parent = ContentScroll
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    IsMinimized = not IsMinimized
+    if IsMinimized then
+        ContentFrame.Visible = false
+        SideBar.Visible = false
+        MainFrame.Size = UDim2.new(0, 550, 0, 45)
+    else
+        ContentFrame.Visible = true
+        SideBar.Visible = true
+        MainFrame.Size = UDim2.new(0, 550, 0, 450)
+    end
+end)
+
+local CurrentContent = {}
+
+-- Function to Create Category Buttons
+local function CreateCategory(Name)
+    local CategoryButton = Instance.new("TextButton")
+    CategoryButton.Name = Name .. "Button"
+    CategoryButton.Size = UDim2.new(1, 0, 0, 40)
+    CategoryButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    CategoryButton.BackgroundTransparency = 0.3
+    CategoryButton.BorderSizePixel = 0
+    CategoryButton.Text = Name
+    CategoryButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    CategoryButton.TextSize = 14
+    CategoryButton.Font = Enum.Font.GothamBold
+    CategoryButton.TextXAlignment = Enum.TextXAlignment.Left
+    CategoryButton.AutoButtonColor = false
+    CategoryButton.Parent = CategoryList
+    
+    local CatStroke = Instance.new("UIStroke")
+    CatStroke.Name = "CatStroke"
+    CatStroke.Thickness = 4
+    CatStroke.Transparency = 0.8
+    CatStroke.Color = Color3.fromRGB(0, 0, 0)
+    CatStroke.Parent = CategoryButton
+    
+    CategoryButton.MouseEnter:Connect(function()
+        CategoryButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        CategoryButton.BackgroundTransparency = 0.5
+        CategoryButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    end)
+    
+    CategoryButton.MouseLeave:Connect(function()
+        CategoryButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        CategoryButton.BackgroundTransparency = 0.3
+        CategoryButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end)
+    
+    return CategoryButton
+end
+
+-- Function to Create Toggle Buttons
+local function CreateToggle(Name, Default, Category)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Name = Name .. "Toggle"
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 50)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ToggleFrame.BackgroundTransparency = 0.4
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Parent = ContentScroll
+    ToggleFrame.Visible = false
+    
+    local frameData = { Frame = ToggleFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local ToggleStroke = Instance.new("UIStroke")
+    ToggleStroke.Thickness = 4
+    ToggleStroke.Transparency = 0.8
+    ToggleStroke.Color = Color3.fromRGB(0, 0, 0)
+    ToggleStroke.Parent = ToggleFrame
+    
+    local ToggleLabel = Instance.new("TextLabel")
+    ToggleLabel.Name = "ToggleLabel"
+    ToggleLabel.Size = UDim2.new(0.7, -15, 1, 0)
+    ToggleLabel.Position = UDim2.new(0, 15, 0, 0)
+    ToggleLabel.BackgroundTransparency = 1
+    ToggleLabel.Text = Name
+    ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleLabel.TextSize = 14
+    ToggleLabel.Font = Enum.Font.Gotham
+    ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ToggleLabel.Parent = ToggleFrame
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "ToggleButton"
+    ToggleButton.Size = UDim2.new(0, 55, 0, 25)
+    ToggleButton.Position = UDim2.new(1, -70, 0.5, -12.5)
+    ToggleButton.BackgroundColor3 = Default and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(200, 50, 50)
+    ToggleButton.BackgroundTransparency = 0.2
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Text = Default and "ON" or "OFF"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 12
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.AutoButtonColor = false
+    ToggleButton.Parent = ToggleFrame
+    
+    local ToggleBtnStroke = Instance.new("UIStroke")
+    ToggleBtnStroke.Thickness = 4
+    ToggleBtnStroke.Transparency = 0.8
+    ToggleBtnStroke.Color = Color3.fromRGB(0, 0, 0)
+    ToggleBtnStroke.Parent = ToggleButton
+    
+    local State = Default
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        State = not State
+        ToggleButton.BackgroundColor3 = State and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(200, 50, 50)
+        ToggleButton.BackgroundTransparency = 0.2
+        ToggleButton.Text = State and "ON" or "OFF"
+        
+        if Name == "Infinite Jump" then
+            InfiniteJump = State
+            if State then EnableInfiniteJump() else DisableInfiniteJump() end
+        elseif Name == "Double Jump" then
+            DoubleJump = State
+            if State then EnableDoubleJump() else DisableDoubleJump() end
+        elseif Name == "Invisible" then
+            IsInvisible = State
+            SetInvisibility(State)
+        elseif Name == "Fly" then
+            IsFlying = State
+            if State then EnableFly() else DisableFly() end
+        elseif Name == "Player ESP & Tracer" then
+            EspEnabled = State
+            if State then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer then
+                        CreateEspForPlayer(p)
+                    end
+                end
+            else
+                CleanAllEsp()
+            end
+        elseif Name == "Night Mode" then
+            IsNightMode = State
+            if State then EnableNightMode() else DisableNightMode() end
+        elseif Name == "Plastic Mode" then
+            IsPlasticMode = State
+            if State then EnablePlasticMode() else DisablePlasticMode() end
+        elseif Name == "Aimlock" then
+            IsAimlock = State
+            if State then EnableAimlock() else DisableAimlock() end
+        end
+    end)
+    
+    return ToggleFrame
+end
+
+-- Function to Create Keybind Picker
+local function CreateKeybindPicker(Name, DefaultKey, Category, Callback)
+    local KeybindFrame = Instance.new("Frame")
+    KeybindFrame.Name = Name .. "Keybind"
+    KeybindFrame.Size = UDim2.new(1, 0, 0, 60)
+    KeybindFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    KeybindFrame.BackgroundTransparency = 0.4
+    KeybindFrame.BorderSizePixel = 0
+    KeybindFrame.Parent = ContentScroll
+    KeybindFrame.Visible = false
+    
+    local frameData = { Frame = KeybindFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local KeyStroke = Instance.new("UIStroke")
+    KeyStroke.Thickness = 4
+    KeyStroke.Transparency = 0.8
+    KeyStroke.Color = Color3.fromRGB(0, 0, 0)
+    KeyStroke.Parent = KeybindFrame
+    
+    local KeyLabel = Instance.new("TextLabel")
+    KeyLabel.Size = UDim2.new(0, 200, 1, 0)
+    KeyLabel.Position = UDim2.new(0, 15, 0, 0)
+    KeyLabel.BackgroundTransparency = 1
+    KeyLabel.Text = Name .. ": " .. tostring(DefaultKey):match("%w+$")
+    KeyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyLabel.TextSize = 14
+    KeyLabel.Font = Enum.Font.Gotham
+    KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    KeyLabel.Parent = KeybindFrame
+    
+    local BindButton = Instance.new("TextButton")
+    BindButton.Size = UDim2.new(0, 150, 0, 30)
+    BindButton.Position = UDim2.new(1, -165, 0.5, -15)
+    BindButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    BindButton.Text = "Click to Bind"
+    BindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BindButton.Font = Enum.Font.GothamBold
+    BindButton.TextSize = 14
+    BindButton.Parent = KeybindFrame
+    
+    local BindStroke = Instance.new("UIStroke")
+    BindStroke.Thickness = 4
+    BindStroke.Transparency = 0.8
+    BindStroke.Color = Color3.fromRGB(0, 0, 0)
+    BindStroke.Parent = BindButton
+    
+    local CurrentKey = DefaultKey
+    local WaitingForInput = false
+    
+    BindButton.MouseButton1Click:Connect(function()
+        WaitingForInput = true
+        BindButton.Text = "..."
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if WaitingForInput and input.UserInputType == Enum.UserInputType.Keyboard then
+            CurrentKey = input.KeyCode
+            KeyLabel.Text = Name .. ": " .. tostring(CurrentKey):match("%w+$")
+            BindButton.Text = "Click to Bind"
+            WaitingForInput = false
+            if Callback then Callback(CurrentKey) end
+        end
+    end)
+    
+    return KeybindFrame, CurrentKey
+end
+
+-- Function to Create Dropdown
+local function CreateDropdown(Name, Options, Default, Category, Callback)
+    local DropdownFrame = Instance.new("Frame")
+    DropdownFrame.Name = Name .. "Dropdown"
+    DropdownFrame.Size = UDim2.new(1, 0, 0, 50)
+    DropdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    DropdownFrame.BackgroundTransparency = 0.4
+    DropdownFrame.BorderSizePixel = 0
+    DropdownFrame.Parent = ContentScroll
+    DropdownFrame.Visible = false
+    
+    local frameData = { Frame = DropdownFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local DropStroke = Instance.new("UIStroke")
+    DropStroke.Thickness = 4
+    DropStroke.Transparency = 0.8
+    DropStroke.Color = Color3.fromRGB(0, 0, 0)
+    DropStroke.Parent = DropdownFrame
+    
+    local DropLabel = Instance.new("TextLabel")
+    DropLabel.Size = UDim2.new(0, 200, 1, 0)
+    DropLabel.Position = UDim2.new(0, 15, 0, 0)
+    DropLabel.BackgroundTransparency = 1
+    DropLabel.Text = Name .. ": " .. Default
+    DropLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DropLabel.TextSize = 14
+    DropLabel.Font = Enum.Font.Gotham
+    DropLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DropLabel.Parent = DropdownFrame
+    
+    local DropButton = Instance.new("TextButton")
+    DropButton.Size = UDim2.new(0, 150, 0, 30)
+    DropButton.Position = UDim2.new(1, -165, 0.5, -15)
+    DropButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    DropButton.Text = Default
+    DropButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DropButton.Font = Enum.Font.GothamBold
+    DropButton.TextSize = 14
+    DropButton.Parent = DropdownFrame
+    
+    local DropBtnStroke = Instance.new("UIStroke")
+    DropBtnStroke.Thickness = 4
+    DropBtnStroke.Transparency = 0.8
+    DropBtnStroke.Color = Color3.fromRGB(0, 0, 0)
+    DropBtnStroke.Parent = DropButton
+    
+    local CurrentOption = Default
+    
+    DropButton.MouseButton1Click:Connect(function()
+        local OptionList = Instance.new("Frame")
+        OptionList.Size = UDim2.new(0, 150, 0, #Options * 30)
+        OptionList.Position = UDim2.new(1, -165, 0, 50)
+        OptionList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        OptionList.BorderSizePixel = 0
+        OptionList.Parent = DropdownFrame
+        
+        local OptStroke = Instance.new("UIStroke")
+        OptStroke.Thickness = 4
+        OptStroke.Transparency = 0.8
+        OptStroke.Color = Color3.fromRGB(0, 0, 0)
+        OptStroke.Parent = OptionList
+        
+        local Layout = Instance.new("UIListLayout")
+        Layout.Parent = OptionList
+        
+        for _, opt in pairs(Options) do
+            local OptButton = Instance.new("TextButton")
+            OptButton.Size = UDim2.new(1, 0, 0, 30)
+            OptButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            OptButton.Text = opt
+            OptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            OptButton.Font = Enum.Font.Gotham
+            OptButton.Parent = OptionList
+            
+            OptButton.MouseButton1Click:Connect(function()
+                CurrentOption = opt
+                DropButton.Text = opt
+                DropLabel.Text = Name .. ": " .. opt
+                OptionList:Destroy()
+                if Callback then Callback(opt) end
+            end)
+        end
+        
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                task.wait(0.1)
+                OptionList:Destroy()
+            end
+        end)
+    end)
+    
+    return DropdownFrame
+end
+
+-- Function to Create Sliders
+local function CreateSlider(Name, Min, Max, Default, Category)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Name = Name .. "Slider"
+    SliderFrame.Size = UDim2.new(1, 0, 0, 80)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    SliderFrame.BackgroundTransparency = 0.4
+    SliderFrame.BorderSizePixel = 0
+    SliderFrame.Parent = ContentScroll
+    SliderFrame.Visible = false
+    
+    local frameData = { Frame = SliderFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local SliderStroke = Instance.new("UIStroke")
+    SliderStroke.Thickness = 4
+    SliderStroke.Transparency = 0.8
+    SliderStroke.Color = Color3.fromRGB(0, 0, 0)
+    SliderStroke.Parent = SliderFrame
+    
+    local SliderLabel = Instance.new("TextLabel")
+    SliderLabel.Name = "SliderLabel"
+    SliderLabel.Size = UDim2.new(1, -30, 0, 20)
+    SliderLabel.Position = UDim2.new(0, 15, 0, 10)
+    SliderLabel.BackgroundTransparency = 1
+    SliderLabel.Text = Name .. ": " .. Default
+    SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SliderLabel.TextSize = 14
+    SliderLabel.Font = Enum.Font.Gotham
+    SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SliderLabel.Parent = SliderFrame
+    
+    local MinusButton = Instance.new("TextButton")
+    MinusButton.Size = UDim2.new(0, 25, 0, 25)
+    MinusButton.Position = UDim2.new(0, 15, 0, 35)
+    MinusButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    MinusButton.Text = "-"
+    MinusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinusButton.Font = Enum.Font.GothamBold
+    MinusButton.Parent = SliderFrame
+    
+    local PlusButton = Instance.new("TextButton")
+    PlusButton.Size = UDim2.new(0, 25, 0, 25)
+    PlusButton.Position = UDim2.new(1, -40, 0, 35)
+    PlusButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    PlusButton.Text = "+"
+    PlusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PlusButton.Font = Enum.Font.GothamBold
+    PlusButton.Parent = SliderFrame
+    
+    local SliderBar = Instance.new("Frame")
+    SliderBar.Size = UDim2.new(1, -100, 0, 8)
+    SliderBar.Position = UDim2.new(0, 50, 0, 43)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    SliderBar.Parent = SliderFrame
+    
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    SliderFill.Parent = SliderBar
+    
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Size = UDim2.new(0, 20, 0, 20)
+    SliderButton.Position = UDim2.new((Default - Min) / (Max - Min), -10, 0.5, -10)
+    SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderButton.Text = ""
+    SliderButton.Parent = SliderBar
+    
+    local Value = Default
+    local Dragging = false
+    
+    local function UpdateValue(NewValue)
+        Value = NewValue
+        local Percent = (Value - Min) / (Max - Min)
+        SliderFill.Size = UDim2.new(Percent, 0, 1, 0)
+        SliderButton.Position = UDim2.new(Percent, -10, 0.5, -10)
+        SliderLabel.Text = Name .. ": " .. Value
+        
+        if Name == "Jump Power" then
+            JumpPower = Value
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.JumpPower = Value end
+        elseif Name == "Walk Speed" then
+            WalkSpeed = Value
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = Value end
+        elseif Name == "Forward TP" then
+            ForwardTPAmount = Value
+        elseif Name == "Fly Speed" then
+            FlySpeed = Value
+        elseif Name == "ESP Color - Red" then
+            EspColorR = Value
+            EspColor = Color3.fromRGB(EspColorR, EspColorG, EspColorB)
+        elseif Name == "ESP Color - Green" then
+            EspColorG = Value
+            EspColor = Color3.fromRGB(EspColorR, EspColorG, EspColorB)
+        elseif Name == "ESP Color - Blue" then
+            EspColorB = Value
+            EspColor = Color3.fromRGB(EspColorR, EspColorG, EspColorB)
+        end
+    end
+    
+    MinusButton.MouseButton1Click:Connect(function() UpdateValue(math.max(Min, Value - 1)) end)
+    PlusButton.MouseButton1Click:Connect(function() UpdateValue(math.min(Max, Value + 1)) end)
+    
+    SliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end
+    end)
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local MousePos = UserInputService:GetMouseLocation()
+            local BarAbsolutePos = SliderBar.AbsolutePosition
+            local BarAbsoluteSize = SliderBar.AbsoluteSize
+            local RelativeX = math.clamp((MousePos.X - BarAbsolutePos.X) / BarAbsoluteSize.X, 0, 1)
+            UpdateValue(math.floor(Min + (Max - Min) * RelativeX))
+        end
+    end)
+    
+    return SliderFrame
+end
+
+-- Function to Create Action Buttons
+local function CreateActionButton(Name, Category, Callback)
+    local ActionFrame = Instance.new("Frame")
+    ActionFrame.Name = Name .. "Action"
+    ActionFrame.Size = UDim2.new(1, 0, 0, 50)
+    ActionFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ActionFrame.BackgroundTransparency = 0.4
+    ActionFrame.BorderSizePixel = 0
+    ActionFrame.Parent = ContentScroll
+    ActionFrame.Visible = false
+    
+    local frameData = { Frame = ActionFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local ActionButton = Instance.new("TextButton")
+    ActionButton.Size = UDim2.new(1, -20, 1, -10)
+    ActionButton.Position = UDim2.new(0, 10, 0, 5)
+    ActionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    ActionButton.Text = Name
+    ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ActionButton.Font = Enum.Font.GothamBold
+    ActionButton.TextSize = 16
+    ActionButton.Parent = ActionFrame
+    
+    ActionButton.MouseButton1Click:Connect(function() if Callback then Callback() end end)
+    return ActionFrame
+end
+
+-- Function to Create TextBox
+local function CreateTextBox(Name, Placeholder, Category, Callback)
+    local TextFrame = Instance.new("Frame")
+    TextFrame.Size = UDim2.new(1, 0, 0, 60)
+    TextFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    TextFrame.BackgroundTransparency = 0.4
+    TextFrame.Parent = ContentScroll
+    TextFrame.Visible = false
+    
+    local frameData = { Frame = TextFrame, Category = Category }
+    table.insert(CurrentContent, frameData)
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.4, 0, 1, 0)
+    Label.Position = UDim2.new(0, 15, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = Name
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = TextFrame
+    
+    local Box = Instance.new("TextBox")
+    Box.Size = UDim2.new(0.5, 0, 0, 30)
+    Box.Position = UDim2.new(0.45, 0, 0.5, -15)
+    Box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Box.PlaceholderText = Placeholder
+    Box.Text = ""
+    Box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Box.Font = Enum.Font.Gotham
+    Box.Parent = TextFrame
+    
+    Box.FocusLost:Connect(function(enterPressed)
+        if enterPressed and Callback then
+            Callback(Box.Text)
+        end
+    end)
+    
+    return TextFrame
+end
+
+-- Player List Frame
+local function CreatePlayerList()
+    PlayerListFrame = Instance.new("Frame")
+    PlayerListFrame.Name = "PlayerListFrame"
+    PlayerListFrame.Size = UDim2.new(0, 200, 0, 300)
+    PlayerListFrame.Position = UDim2.new(1, -210, 0.5, -150)
+    PlayerListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    PlayerListFrame.BackgroundTransparency = 0.4
+    PlayerListFrame.BorderSizePixel = 0
+    PlayerListFrame.Active = true
+    PlayerListFrame.Draggable = true
+    PlayerListFrame.Parent = CyberHub
+    
+    local PLStroke = Instance.new("UIStroke")
+    PLStroke.Thickness = 4
+    PLStroke.Transparency = 0.8
+    PLStroke.Color = Color3.fromRGB(0, 0, 0)
+    PLStroke.Parent = PlayerListFrame
+    
+    local PLTitle = Instance.new("TextLabel")
+    PLTitle.Size = UDim2.new(1, 0, 0, 30)
+    PLTitle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    PLTitle.BackgroundTransparency = 0.5
+    PLTitle.Text = "Player List"
+    PLTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PLTitle.Font = Enum.Font.GothamBold
+    PLTitle.TextSize = 16
+    PLTitle.Parent = PlayerListFrame
+    
+    local PLScroll = Instance.new("ScrollingFrame")
+    PLScroll.Size = UDim2.new(1, 0, 1, -30)
+    PLScroll.Position = UDim2.new(0, 0, 0, 30)
+    PLScroll.BackgroundTransparency = 1
+    PLScroll.ScrollBarThickness = 3
+    PLScroll.Parent = PlayerListFrame
+    
+    local PLLayout = Instance.new("UIListLayout")
+    PLLayout.Padding = UDim.new(0, 5)
+    PLLayout.Parent = PLScroll
+    
+    local function UpdatePlayerList()
+        for _, item in pairs(PlayerListItems) do
+            item:Destroy()
+        end
+        PlayerListItems = {}
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            local PlayerFrame = Instance.new("Frame")
+            PlayerFrame.Size = UDim2.new(1, -10, 0, 40)
+            PlayerFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            PlayerFrame.BackgroundTransparency = 0.3
+            PlayerFrame.Parent = PLScroll
+            
+            local PlayerLabel = Instance.new("TextLabel")
+            PlayerLabel.Size = UDim2.new(1, 0, 1, 0)
+            PlayerLabel.BackgroundTransparency = 1
+            PlayerLabel.Text = player.DisplayName .. " [@" .. player.Name .. "]"
+            PlayerLabel.TextColor3 = player == LocalPlayer and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(255, 255, 255)
+            PlayerLabel.Font = Enum.Font.Gotham
+            PlayerLabel.TextSize = 14
+            PlayerLabel.Parent = PlayerFrame
+            
+            table.insert(PlayerListItems, PlayerFrame)
+        end
+    end
+    
+    Players.PlayerAdded:Connect(UpdatePlayerList)
+    Players.PlayerRemoving:Connect(UpdatePlayerList)
+    UpdatePlayerList()
+    
+    return PlayerListFrame
+end
+
+-- Infinite Jump Function
+function EnableInfiniteJump()
+    InfiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+        if InfiniteJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local Humanoid = LocalPlayer.Character.Humanoid
+            if Humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+end
+
+function DisableInfiniteJump()
+    if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() InfiniteJumpConnection = nil end
+end
+
+-- Double Jump Function
+function EnableDoubleJump()
+    local Humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if Humanoid then
+        DoubleJumpConnection = Humanoid.StateChanged:Connect(function(old, new)
+            if DoubleJump and new == Enum.HumanoidStateType.Freefall and not HasDoubleJumped then
+                task.wait(0.1)
+                HasDoubleJumped = true
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            elseif new == Enum.HumanoidStateType.Landed then
+                HasDoubleJumped = false
+            end
+        end)
+    end
+end
+
+function DisableDoubleJump()
+    if DoubleJumpConnection then DoubleJumpConnection:Disconnect() DoubleJumpConnection = nil end
+    HasDoubleJumped = false
+end
+
+-- Fly Function
+function EnableFly()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local hrp = char.HumanoidRootPart
+    local bg = Instance.new("BodyGyro", hrp)
+    bg.Name = "CyberHubFlyGyro"
+    bg.P = 9e4
+    bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.cframe = hrp.CFrame
+    
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.Name = "CyberHubFlyVelocity"
+    bv.velocity = Vector3.new(0,0,0)
+    bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    if char:FindFirstChild("Humanoid") then
+        char.Humanoid.PlatformStand = true
+    end
+    
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        if not IsFlying or not char or not char:FindFirstChild("HumanoidRootPart") then
+            DisableFly()
+            return
+        end
+        
+        local cam = workspace.CurrentCamera
+        bg.cframe = cam.CFrame
+        
+        local moveDir = Vector3.new(0,0,0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+        
+        if moveDir.Magnitude > 0 then
+            bv.velocity = moveDir.Unit * FlySpeed
+        else
+            bv.velocity = Vector3.new(0,0,0)
+        end
+    end)
+end
+
+function DisableFly()
+    IsFlying = false
+    if FlyConnection then FlyConnection:Disconnect() end
+    local char = LocalPlayer.Character
+    if char then
+        if char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            if hrp:FindFirstChild("CyberHubFlyGyro") then hrp.CyberHubFlyGyro:Destroy() end
+            if hrp:FindFirstChild("CyberHubFlyVelocity") then hrp.CyberHubFlyVelocity:Destroy() end
+        end
+        if char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
+    end
+end
+
+-- Invisibility Function
+function SetInvisibility(State)
+    local char = LocalPlayer.Character
+    if char then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+                v.Transparency = State and 1 or 0
+            elseif v:IsA("Decal") then
+                v.Transparency = State and 1 or 0
+            end
+        end
+    end
+end
+
+-- ESP Functions
+function CreateEspForPlayer(player)
+    if player == LocalPlayer or EspObjects[player.Name] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name .. "_ESP"
+    highlight.FillColor = EspColor
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    
+    if player.Character then
+        highlight.Parent = player.Character
+    end
+    
+    EspObjects[player.Name] = highlight
+    
+    player.CharacterAdded:Connect(function(char)
+        if EspEnabled then
+            highlight.Parent = char
+        end
+    end)
+end
+
+function CleanAllEsp()
+    for name, obj in pairs(EspObjects) do
+        if obj then obj:Destroy() end
+    end
+    EspObjects = {}
+end
+
+-- Lighting & Material Functions
+function EnableNightMode()
+    print("Night Mode enabled")
+    OriginalLightingValues.TimeOfDay = Lighting.TimeOfDay
+    Lighting.TimeOfDay = "00:00:00"
+end
+
+function DisableNightMode()
+    print("Night Mode disabled")
+    if OriginalLightingValues.TimeOfDay then
+        Lighting.TimeOfDay = OriginalLightingValues.TimeOfDay
+    end
+end
+
+function EnablePlasticMode()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Material ~= Enum.Material.Plastic then
+            OriginalMaterials[v] = v.Material
+            v.Material = Enum.Material.Plastic
+        end
+    end
+end
+
+function DisablePlasticMode()
+    for part, mat in pairs(OriginalMaterials) do
+        if part and part.Parent then
+            part.Material = mat
+        end
+    end
+    OriginalMaterials = {}
+end
+
+-- Aimlock Function
+function EnableAimlock()
+    AimlockConnection = RunService.RenderStepped:Connect(function()
+        if not IsAimlock then return end
+        
+        local closestPlayer = nil
+        local shortestDistance = math.huge
+        local mousePos = UserInputService:GetMouseLocation()
+        local cam = workspace.CurrentCamera
+        
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild(AimlockTarget) and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                local pos, onScreen = cam:WorldToViewportPoint(p.Character[AimlockTarget].Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestPlayer = p
+                    end
+                end
+            end
+        end
+        
+        if closestPlayer and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            cam.CFrame = CFrame.new(cam.CFrame.Position, closestPlayer.Character[AimlockTarget].Position)
+        end
+    end)
+end
+
+function DisableAimlock()
+    if AimlockConnection then
+        AimlockConnection:Disconnect()
+        AimlockConnection = nil
+    end
+end
+
+-----------------------------------------------------
+-- MENU INITIALIZATION (Generiert das tatsächliche UI)
+-----------------------------------------------------
+
+-- Kategorien erstellen
+local CatMain = CreateCategory("Main")
+local CatVisuals = CreateCategory("Visuals")
+local CatWorld = CreateCategory("World")
+
+-- Main Tab Items
+CreateToggle("Infinite Jump", false, "Main")
+CreateToggle("Double Jump", false, "Main")
+CreateToggle("Fly", false, "Main")
+CreateSlider("Fly Speed", 10, 200, 50, "Main")
+CreateToggle("Invisible", false, "Main")
+
+-- Visuals Tab Items
+CreateToggle("Player ESP & Tracer", false, "Visuals")
+CreateToggle("Aimlock", false, "Visuals")
+CreateDropdown("Aimlock Part", {"Head", "HumanoidRootPart"}, "Head", "Visuals", function(val)
+    AimlockTarget = val
+end)
+CreateSlider("ESP Color - Red", 0, 255, 255, "Visuals")
+CreateSlider("ESP Color - Green", 0, 255, 0, "Visuals")
+CreateSlider("ESP Color - Blue", 0, 255, 0, "Visuals")
+
+-- World Tab Items
+CreateToggle("Night Mode", false, "World")
+CreateToggle("Plastic Mode", false, "World")
+
+-- Funktion zum Wechseln der Kategorien
+local function SwitchTab(tabName)
+    ContentTitle.Text = tabName
+    for _, item in pairs(CurrentContent) do
+        if item.Category == tabName then
+            item.Frame.Visible = true
+        else
+            item.Frame.Visible = false
+        end
+    end
+end
+
+-- Klick-Events für Kategorien verbinden
+CatMain.MouseButton1Click:Connect(function() SwitchTab("Main") end)
+CatVisuals.MouseButton1Click:Connect(function() SwitchTab("Visuals") end)
+CatWorld.MouseButton1Click:Connect(function() SwitchTab("World") end)
+
+-- Standardmäßig den Main-Tab anzeigen
+SwitchTab("Main")
+
+-- Player List laden
+CreatePlayerList()
+
+print("CyberHub vollständig geladen und Fehler behoben!")
